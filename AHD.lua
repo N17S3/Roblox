@@ -1,3 +1,5 @@
+print("Version 1")
+
 local UserInputService = game:GetService("UserInputService")
 local API {}
 API.DeviceCheck = function()
