@@ -1,0 +1,11 @@
+local UserInputService = game:GetService("UserInputService")
+local API {}
+API.DeviceCheck = function()
+	if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/N17S3/Roblox/refs/heads/main/Mobile.lua"))();
+	else
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/N17S3/Roblox/refs/heads/main/PC.lua"))();
+	end
+end
+
+API.DeviceCheck()
