@@ -312,7 +312,7 @@ task.spawn(function()
 end)
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/N17S3/Main/refs/heads/main/Mobile_UI.lua"))()
-local Window = Library:Window("AHD | Tool - N17S3")
+local Window = Library:Window("AHD | N17S3")
 local Tab1 = Window:Tab("Farm")
 local Tab2 = Window:Tab("Spin")
 
