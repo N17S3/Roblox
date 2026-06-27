@@ -7,3 +7,5 @@ API.DeviceCheck = function()
 		return loadstring(game:HttpGet("https://raw.githubusercontent.com/N17S3/Roblox/refs/heads/main/PC_lua"))();
 	end
 end
+
+API.DeviceCheck()
