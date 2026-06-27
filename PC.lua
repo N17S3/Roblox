@@ -366,6 +366,12 @@ FarmSection:Dropdown("Select NPC", Quests, function(Value)
 	Temp.Target = Value
 end)
 
+FarmSection:Button("Force Selected Quest", function()
+	for i = 1,10 do
+		API.GetQuest(API.GetNpcIndex(Temp.Target))
+	end
+end)
+
 FarmSection:Label("Skill Points")
 
 FarmSection:Toggle("Auto Spend Skill Points", function()
