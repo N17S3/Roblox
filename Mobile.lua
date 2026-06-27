@@ -365,6 +365,10 @@ Tab1:Dropdown("Select NPC", Quests, function(Value)
 	Temp.Target = Value
 end)
 
+Tab1:Button("Force Selected Quest", function()
+	API.GetQuest(API.GetNpcIndex(Temp.Target))
+end)
+
 Tab1:Toggle("Auto Spend Skill Points", function(Value)
 	Temp.AutoSkillPoint = not Temp.AutoSkillPoint
 
@@ -399,8 +403,8 @@ Tab1:Toggle("Auto Spend Skill Points", function(Value)
 	end
 end)
 
-Tab1:Textbox("Textbox", false, function(Value)
-	Temp.Statamount = Value
+Tab1:Textbox("Amount of StatPoints", false, function(Value)
+	Temp.Statamount = tonumber(Value)
 end)
 
 Tab2:Toggle("AutoSpin", function()
@@ -420,6 +424,6 @@ Tab2:Toggle("AutoSpin", function()
 	end
 end)
 
-Tab2:Dropdown("Dropdown", Classes, function(Value)
+Tab2:Dropdown("Select Class", Classes, function(Value)
 	Temp.SpinTarget = Value
 end)
