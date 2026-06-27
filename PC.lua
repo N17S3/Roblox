@@ -2,12 +2,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
-local UserInputService = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
 local Remotes = ReplicatedStorage.Modules.Net
 
 local API = {}
+
+getgenv = getgenv
 
 local StaffList = {
 	15830208, 137289169, 56835491, 2801665623, 2734254163,
@@ -52,7 +53,8 @@ end
 repeat task.wait() until API.AscendedCheck() ~= nil
 
 API.GetStat = function(Stat_Name)
-	local ValidStats = {"Strength","Defense","Form"}
+	local ValidStats = {"Strength","Defense","Form","Level"}
+	local Lvl = Player.PlayerGui.GameGui.MenuContainer.HUD.LevelBackground.TextLabel.Text:gsub(",","")
 	local Str = Player.PlayerGui.GameGui.MenuContainer.StatsMenu.StatContainer.StrengthFrame.ValueLabel.Text:gsub(",","")
 	local Def = Player.PlayerGui.GameGui.MenuContainer.StatsMenu.StatContainer.AgilityFrame.ValueLabel.Text:gsub(",","")
 	local Form = Player.PlayerGui.GameGui.MenuContainer.StatsMenu.StatContainer.FormFrame.ValueLabel.Text:gsub(",","")
@@ -60,8 +62,12 @@ API.GetStat = function(Stat_Name)
 		return tonumber(Str)
 	elseif Stat_Name == ValidStats[2] then
 		return tonumber(Def)
-	else
+	elseif Stat_Name == ValidStats[3] then
 		return tonumber(Form)
+	elseif Stat_Name == ValidStats[4] then
+		return tonumber(Lvl)
+	else
+		return error("Invalid Stat Called")
 	end
 end
 
@@ -69,12 +75,15 @@ local Temp = {
 	AutoFarm = false,
 	AutoSkillPoint = false,
 	AutoSpin = false,
+	AutoRebirth = false,
 
 	SpinTarget = nil,
 	Target = nil,
 	MissingCount = 0,
 	Skip = false,
-	Statamount = 100,
+	Statamount = 1000,
+
+	Rebirth_Level = getgenv().Rebirth_Level or 1000000
 }
 
 local Earth_NPCS = {
@@ -237,8 +246,6 @@ end
 API.GetCurrentClass = function()
 	if Player.PlayerGui.GameGui.MenuContainer.ClassMenu.OuterContainer.ClassLabel then
 		return Player.PlayerGui.GameGui.MenuContainer.ClassMenu.OuterContainer.ClassLabel.Text
-	else
-		return error("Error [1]")
 	end
 end
 
@@ -316,6 +323,7 @@ local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/N17S3
 
 local FarmSection = Library:CreateSection("Farm")
 local SpinSection = Library:CreateSection("Spin")
+local RebirthSection = Library:CreateSection("Rebirth")
 
 FarmSection:Toggle("AutoFarm", function()
 	Temp.AutoFarm = not Temp.AutoFarm
@@ -376,30 +384,51 @@ FarmSection:Label("Skill Points")
 
 FarmSection:Toggle("Auto Spend Skill Points", function()
 	Temp.AutoSkillPoint = not Temp.AutoSkillPoint
-	
+
 	while Temp.AutoSkillPoint do
 		if not Temp.AutoSkillPoint then break end
 		if API.AscendedCheck() then
 			local PlayerStats = {"Authority","Presence","Grace"}
-			
+
 			for i, Stat in PlayerStats do
 				local Str = API.GetStat("Strength")
 				local Def = API.GetStat("Defense")
 				local Form = API.GetStat("Form")
-				
-				if Stat == "Authority" and Str < 15000 then
-					Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 15000 - Str)
-				elseif Stat == "Presence" and Def < 400000 then
-					Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 400000 - Def)
-				elseif Stat == "Grace" and Form < 200000 then
-					Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 200000 - Form)
-				elseif Stat == "Authority" and Str >= 15000 then
+
+				local Fallback = true
+
+				if Stat == "Authority" then
+					if Str < 20000 then
+						Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 20000 - Str)
+						Fallback = false
+					elseif Str < 1000000 and Def >= 400000 and Form >= 200000 then
+						Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 1000000 - Str)
+						Fallback = false
+					end
+
+				elseif Stat == "Presence" then
+					if Str >= 20000 and Def < 400000 then
+						Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 400000 - Def)
+						Fallback = false
+					elseif Str >= 1000000 and Def < 1000000 and Form >= 200000 then
+						Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 1000000 - Def)
+						Fallback = false
+					end
+
+				elseif Stat == "Grace" then
+					if Str >= 20000 and Def >= 400000 and Form < 200000 then
+						Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 200000 - Form)
+						Fallback = false
+					end
+				end
+
+				if Fallback then
 					Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, Temp.Statamount)
 				end
 			end
 		else
 			local PlayerStats = {"Health","Form"}
-			
+
 			for i, Stat in PlayerStats do
 				Remotes["RE/UpgradeStat"]:FireServer(Stat, Temp.Statamount)
 			end
@@ -432,6 +461,26 @@ end)
 
 SpinSection:Dropdown("Select Class", Classes, function(Value)
 	Temp.SpinTarget = Value
+end)
+
+--// Rebirth Section \\--
+RebirthSection:Toggle("AutoRebirth", function()
+	Temp.AutoRebirth = not Temp.AutoRebirth
+
+	while Temp.AutoRebirth do
+		if not Temp.AutoRebirth then break end
+		local CurrentLevel = API.GetStat("Level")
+		if CurrentLevel >= Temp.Rebirth_Level then
+			for i = 1, 100 do
+				Remotes["RE/AscendantRebirth"]:FireServer()
+			end
+		end
+		task.wait()
+	end
+end)
+
+RebirthSection:Box("Rebirth level requirement", function(Value)
+	Temp.Rebirth_Level = tonumber(Value)
 end)
 
 Library:Ready()
