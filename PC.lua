@@ -3,79 +3,30 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local VirtualUser = game:GetService("VirtualUser")
 
-local Player = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer
 local Remotes = ReplicatedStorage.Modules.Net
-
-local API = {}
-
-getgenv = getgenv
-
-local StaffList = {
-	15830208, 137289169, 56835491, 2801665623, 2734254163,
-	2310132044, 142749620, 1991618601, 1130683365, 28893687,
-	34548520, 1247094293, 197269582, 1384340575, 297087250,
-	324079363, 2406332172, 83224607, 137830537, 314034651,
-	1385078842, 1156445873, 76968467,
-}
 
 do
 	if game.PlaceId ~= 6461766546 then
-		return Player:Kick("Incorrect Game | AHD Only...")
+		return LocalPlayer:Kick("Incorrect Game | AHD Only...")
 	end
 end
 
-do
-	for i,player in Players:GetPlayers() do
-		if table.find(StaffList, player.UserId) then
-			Player:Kick("Staff Detected | Script Kick!")
-		end
-	end
-	Players.PlayerAdded:Connect(function(player)
-		if table.find(StaffList, Player.UserId) then
-			Player:Kick("Staff Detected | Script Kick!")
-		end
-	end)
-end
-
-API.AscendedCheck = function()
-	if Player and Player.PlayerGui then
-		if Player.PlayerGui:WaitForChild("TopbarStandard").Holders.Left:GetChildren()[5].IconButton then
-			local AscendedTextBox = Player.PlayerGui:WaitForChild("TopbarStandard").Holders.Left:GetChildren()[5]:WaitForChild("IconButton").Menu.IconSpot.Contents.IconLabelContainer.IconLabel
-			if AscendedTextBox and AscendedTextBox.Visible and AscendedTextBox.Text == "Descend" then
-				return true	
-			else
-				return false
-			end	
-		end
-	end
-end
-
-repeat task.wait() until API.AscendedCheck() ~= nil
-
-API.GetStat = function(Stat_Name)
-	local ValidStats = {"Strength","Defense","Form","Level"}
-	local Lvl = Player.PlayerGui.GameGui.MenuContainer.HUD.LevelBackground.TextLabel.Text:gsub(",","")
-	local Str = Player.PlayerGui.GameGui.MenuContainer.StatsMenu.StatContainer.StrengthFrame.ValueLabel.Text:gsub(",","")
-	local Def = Player.PlayerGui.GameGui.MenuContainer.StatsMenu.StatContainer.AgilityFrame.ValueLabel.Text:gsub(",","")
-	local Form = Player.PlayerGui.GameGui.MenuContainer.StatsMenu.StatContainer.FormFrame.ValueLabel.Text:gsub(",","")
-	if Stat_Name == ValidStats[1] then
-		return tonumber(Str)
-	elseif Stat_Name == ValidStats[2] then
-		return tonumber(Def)
-	elseif Stat_Name == ValidStats[3] then
-		return tonumber(Form)
-	elseif Stat_Name == ValidStats[4] then
-		return tonumber(Lvl)
-	else
-		return error("Invalid Stat Called")
-	end
-end
+local API = {}
 
 local Temp = {
+	FarmChoid = false,
 	AutoFarm = false,
 	AutoSkillPoint = false,
 	AutoSpin = false,
 	AutoRebirth = false,
+	KillAura = false,
+	KillAuraRange = 25,
+
+	SupportedExecutor = false,
+	
+	Quests = {},
+	Classes = {},
 
 	SpinTarget = nil,
 	Target = nil,
@@ -188,35 +139,143 @@ local Sky_Classes = {
 	[14] = "Rose",
 }
 
-local Quests = {}
-local Classes = {}
+--// Exploit Functions \\--
+getgenv = getgenv
+
+local StaffList = {
+	15830208, 137289169, 56835491, 2801665623, 2734254163,
+	2310132044, 142749620, 1991618601, 1130683365, 28893687,
+	34548520, 1247094293, 197269582, 1384340575, 297087250,
+	324079363, 2406332172, 83224607, 137830537, 314034651,
+	1385078842, 1156445873, 76968467,
+}
+
+do
+	for i, player in Players:GetPlayers() do
+		if table.find(StaffList, player.UserId) then
+			LocalPlayer:Kick("Staff Detected | Script Kick!")
+		end
+	end
+	Players.PlayerAdded:Connect(function(player)
+		if table.find(StaffList, LocalPlayer.UserId) then
+			LocalPlayer:Kick("Staff Detected | Script Kick!")
+		end
+	end)
+end
+
+repeat task.wait() until LocalPlayer:GetAttribute("DataLoaded")
+
+task.spawn(function()
+	while task.wait(120) do
+		VirtualUser:CaptureController()
+
+		VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+		task.wait(1)
+		VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+	end
+end)
+
+API.CheckExecutorSupport = function()
+	if LocalPlayer and LocalPlayer.PlayerScripts.Main.StatController then
+		local StatController = require(LocalPlayer.PlayerScripts.Main.StatController)
+		if StatController then
+			return true
+		else
+			return false
+		end
+	end
+end
+
+Temp.SupportedExecutor = API.CheckExecutorSupport()
+
+if Temp.SupportedExecutor then
+	API.AscendedCheck = function()
+		if LocalPlayer and LocalPlayer.PlayerScripts.Main.StatController then
+			local StatController = require(LocalPlayer.PlayerScripts.Main.StatController)
+			if StatController.Ascended._EXTREMELY_DANGEROUS_usedAsValue == true then
+				return true
+			else
+				return false
+			end
+		end
+	end
+	
+	API.GetStat = function(Stat_Name)
+		local ValidStats = {"Strength","Defense","Form","Level"}
+		local StatController = require(LocalPlayer.PlayerScripts.Main.StatController)
+		local Lvl = StatController.Level._EXTREMELY_DANGEROUS_usedAsValue
+		local Str = StatController.Strength._EXTREMELY_DANGEROUS_usedAsValue
+		local Def = StatController.Agility._EXTREMELY_DANGEROUS_usedAsValue
+		local Form = StatController.Form._EXTREMELY_DANGEROUS_usedAsValue
+		if Stat_Name == ValidStats[1] then
+			return tonumber(Str)
+		elseif Stat_Name == ValidStats[2] then
+			return tonumber(Def)
+		elseif Stat_Name == ValidStats[3] then
+			return tonumber(Form)
+		elseif Stat_Name == ValidStats[4] then
+			return tonumber(Lvl)
+		else
+			return error("Invalid Stat Called")
+		end
+	end
+else
+	API.AscendedCheck = function()
+		if LocalPlayer and LocalPlayer.PlayerGui then
+			if LocalPlayer.PlayerGui:WaitForChild("TopbarStandard").Holders.Left:GetChildren()[5].IconButton then
+				local AscendedTextBox = LocalPlayer.PlayerGui:WaitForChild("TopbarStandard").Holders.Left:GetChildren()[5]:WaitForChild("IconButton").Menu.IconSpot.Contents.IconLabelContainer.IconLabel
+				if AscendedTextBox and AscendedTextBox.Visible and AscendedTextBox.Text == "Descend" then
+					return true	
+				else
+					return false
+				end	
+			end
+		end
+	end
+	
+	API.GetStat = function(Stat_Name)
+		local ValidStats = {"Strength","Defense","Form","Level"}
+		local Lvl = LocalPlayer.PlayerGui.GameGui.MenuContainer.HUD.LevelBackground.TextLabel.Text:gsub(",","")
+		local Str = LocalPlayer.PlayerGui.GameGui.MenuContainer.StatsMenu.StatContainer.StrengthFrame.ValueLabel.Text:gsub(",","")
+		local Def = LocalPlayer.PlayerGui.GameGui.MenuContainer.StatsMenu.StatContainer.AgilityFrame.ValueLabel.Text:gsub(",","")
+		local Form = LocalPlayer.PlayerGui.GameGui.MenuContainer.StatsMenu.StatContainer.FormFrame.ValueLabel.Text:gsub(",","")
+		if Stat_Name == ValidStats[1] then
+			return tonumber(Str)
+		elseif Stat_Name == ValidStats[2] then
+			return tonumber(Def)
+		elseif Stat_Name == ValidStats[3] then
+			return tonumber(Form)
+		elseif Stat_Name == ValidStats[4] then
+			return tonumber(Lvl)
+		else
+			return error("Invalid Stat Called")
+		end
+	end
+end
 
 if API.AscendedCheck() then
 	for i,v in Sky_NPCS do
 		if v then
-			table.insert(Quests, v)
+			table.insert(Temp.Quests, v)
 		end
 	end
 
 	for i,v in Sky_Classes do if v then
-			table.insert(Classes, v)
+			table.insert(Temp.Classes, v)
 		end
 	end
 else
 	for i,v in Earth_NPCS do
 		if v then
-			table.insert(Quests, v)
+			table.insert(Temp.Quests, v)
 		end
 	end
 
 	for i,v in Earth_Classes do if v then
-			table.insert(Classes, v)
+			table.insert(Temp.Classes, v)
 		end
 	end
 end
-
-wait(.5)
-
 
 API.GetQuest = function(NPC)
 	if API.AscendedCheck() then
@@ -236,16 +295,16 @@ API.GetQuest = function(NPC)
 end
 
 API.HasQuest = function()
-	if Player:FindFirstChild("Quest") then
-		return Player.Quest:WaitForChild("Target").Value
+	if LocalPlayer:FindFirstChild("Quest") then
+		return LocalPlayer.Quest:WaitForChild("Target").Value
 	else 
 		return false
 	end
 end
 
 API.GetCurrentClass = function()
-	if Player.PlayerGui.GameGui.MenuContainer.ClassMenu.OuterContainer.ClassLabel then
-		return Player.PlayerGui.GameGui.MenuContainer.ClassMenu.OuterContainer.ClassLabel.Text
+	if LocalPlayer.PlayerGui.GameGui.MenuContainer.ClassMenu.OuterContainer.ClassLabel then
+		return LocalPlayer.PlayerGui.GameGui.MenuContainer.ClassMenu.OuterContainer.ClassLabel.Text
 	end
 end
 
@@ -280,26 +339,58 @@ API.GetTarget = function(Target_Name)
 	end
 end
 
-task.spawn(function()
-	while task.wait(120) do
-		VirtualUser:CaptureController()
+API.GetPlayerTarget = function(Range)
+	local Found = {}
 
-		VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-		task.wait(1)
-		VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+	if LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+		local LocalPos = LocalPlayer.Character.HumanoidRootPart.Position
+
+		for i, player in Players:GetPlayers() do
+			if player ~= LocalPlayer then
+				if player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+					local Distance = (LocalPos - player.Character.HumanoidRootPart.Position).Magnitude
+					if Distance <= Range then
+						table.insert(Found, player.Character)
+					end
+				end
+			end
+
+		end
+		return Found
 	end
-end)
+end
+
+API.BossStatus = function(Boss_Name)
+	if Boss_Name ~= "Choid" then
+		return error("Unexpected Error")
+	else
+		local SpawnTime = game:GetService("Workspace").SkyChoidPortal.Overhead.SurfaceGui.TimeLabel.Text
+		if SpawnTime == "NOW!!!" then
+			return true
+		else
+			return false
+		end
+	end
+end
 
 API.AntiFall = function(Character)
 	if Temp.AntiFallConnection then
 		Temp.AntiFallConnection:Disconnect()
 	end
 
+	local Parts = {"Head","UpperTorso","LowerTorso"}
+	local HumRP = Character:WaitForChild("HumanoidRootPart", 5)
+
 	Temp.AntiFallConnection = RunService.RenderStepped:Connect(function()
-		if Character:FindFirstChild("HumanoidRootPart") and Character:FindFirstChild("HumanoidRootPart"):IsDescendantOf(workspace) then
-			Character:FindFirstChild("HumanoidRootPart").CanCollide = false
-			Character:FindFirstChild("UpperTorso").CanCollide = false
-			Character:FindFirstChild("LowerTorso").CanCollide = false
+		if HumRP and HumRP:IsDescendantOf(workspace) then
+			HumRP.CanCollide = false
+
+			for _, partName in Parts do
+				local part = Character:FindFirstChild(partName)
+				if part and part:IsA("BasePart") then
+					part.CanCollide = false
+				end
+			end
 
 			local vel = Character:FindFirstChild("HumanoidRootPart").Velocity
 			if vel.Y then
@@ -310,11 +401,11 @@ API.AntiFall = function(Character)
 end
 
 task.spawn(function()
-	if Player.Character then
-		API.AntiFall(Player.Character)
+	if LocalPlayer.Character then
+		API.AntiFall(LocalPlayer.Character)
 	end
 
-	Player.CharacterAdded:Connect(function(Char)
+	LocalPlayer.CharacterAdded:Connect(function(Char)
 		API.AntiFall(Char)
 	end)
 end)
@@ -324,12 +415,35 @@ local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/N17S3
 local FarmSection = Library:CreateSection("Farm")
 local SpinSection = Library:CreateSection("Spin")
 local RebirthSection = Library:CreateSection("Rebirth")
+local PlayerSection = Library:CreateSection("Players")
 
-FarmSection:Toggle("AutoFarm", function()
+if API.AscendedCheck() then
+	FarmSection:Toggle("Farm Choid", function()
+		Temp.FarmChoid = not Temp.FarmChoid
+	end)
+end
+
+FarmSection:Toggle("Multi Farm", function()
 	Temp.AutoFarm = not Temp.AutoFarm
-	
+
 	while Temp.AutoFarm do
 		if not Temp.AutoFarm then break end
+		
+		if Temp.FarmChoid and API.BossStatus("Choid") and not API.HasQuest() then
+			local Targets = API.GetTarget("Choid")
+			if Targets and #Targets > 0 then
+				local Target = Targets[math.random(1, #Targets)]
+				if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+					LocalPlayer.Character:PivotTo(Target:GetPivot() * CFrame.new(0, -12, 0))
+					for i = 1, 10 do
+						Remotes["RE/CombatEvent"]:FireServer("PunchHit", Targets)
+					end
+				end
+			end
+			task.wait()
+			continue
+		end
+
 		if not API.HasQuest() or Temp.Skip then
 			local QuestNum = API.GetNpcIndex(Temp.Target)
 
@@ -343,12 +457,12 @@ FarmSection:Toggle("AutoFarm", function()
 			Temp.Skip = false
 
 		else
-			local Targets = API.GetTarget(Player.Quest:WaitForChild("Target").Value)
+			local Targets = API.GetTarget(LocalPlayer.Quest:WaitForChild("Target").Value)
 
 			if not Targets or #Targets == 0 then
 				Temp.MissingCount += 1
 
-				if Temp.MissingCount >= 10 then
+				if Temp.MissingCount >= 15 then
 					Temp.Skip = true
 					Temp.MissingCount = 0
 				end
@@ -356,8 +470,8 @@ FarmSection:Toggle("AutoFarm", function()
 				Temp.MissingCount = 0
 				local Target = Targets[math.random(1, #Targets)]
 
-				if Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
-					Player.Character:PivotTo(Target:GetPivot() * CFrame.new(0, -12, 0))
+				if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+					LocalPlayer.Character:PivotTo(Target:GetPivot() * CFrame.new(0, -12, 0))
 
 					for i = 1, 10 do
 						Remotes["RE/CombatEvent"]:FireServer("PunchHit", Targets)
@@ -370,7 +484,7 @@ FarmSection:Toggle("AutoFarm", function()
 	end
 end)
 
-FarmSection:Dropdown("Select NPC", Quests, function(Value)
+FarmSection:Dropdown("Select NPC", Temp.Quests, function(Value)
 	Temp.Target = Value
 end)
 
@@ -382,7 +496,7 @@ end)
 
 FarmSection:Label("Skill Points")
 
-FarmSection:Toggle("Auto Spend Skill Points", function()
+FarmSection:Toggle("Automate Skill Points", function()
 	Temp.AutoSkillPoint = not Temp.AutoSkillPoint
 
 	while Temp.AutoSkillPoint do
@@ -395,36 +509,33 @@ FarmSection:Toggle("Auto Spend Skill Points", function()
 				local Def = API.GetStat("Defense")
 				local Form = API.GetStat("Form")
 
-				local Fallback = true
+				local Fallback = false
 
 				if Stat == "Authority" then
-					if Str < 20000 then
-						Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 20000 - Str)
-						Fallback = false
+					if Str < 50000 then
+						Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 50000 - Str)
 					elseif Str < 1000000 and Def >= 400000 and Form >= 200000 then
 						Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 1000000 - Str)
-						Fallback = false
 					end
 
 				elseif Stat == "Presence" then
-					if Str >= 20000 and Def < 400000 then
+					if Str >= 50000 and Def < 400000 then
 						Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 400000 - Def)
-						Fallback = false
 					elseif Str >= 1000000 and Def < 1000000 and Form >= 200000 then
 						Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 1000000 - Def)
-						Fallback = false
+						Fallback = true
 					end
 
 				elseif Stat == "Grace" then
-					if Str >= 20000 and Def >= 400000 and Form < 200000 then
+					if Str >= 50000 and Def >= 400000 and Form < 200000 then
 						Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, 200000 - Form)
-						Fallback = false
 					end
 				end
 
 				if Fallback then
 					Remotes["RE/UpgradeAscendantStat"]:FireServer(Stat, Temp.Statamount)
 				end
+				task.wait(1)
 			end
 		else
 			local PlayerStats = {"Health","Form"}
@@ -437,7 +548,7 @@ FarmSection:Toggle("Auto Spend Skill Points", function()
 	end
 end)
 
-FarmSection:Box("Amount of StatPoints", function(Value)
+FarmSection:Box("Stat Spend Limit", function(Value)
 	Temp.Statamount = tonumber(Value)
 end)
 
@@ -459,7 +570,7 @@ SpinSection:Toggle("AutoSpin", function()
 	end
 end)
 
-SpinSection:Dropdown("Select Class", Classes, function(Value)
+SpinSection:Dropdown("Select Class", Temp.Classes, function(Value)
 	Temp.SpinTarget = Value
 end)
 
@@ -479,8 +590,26 @@ RebirthSection:Toggle("AutoRebirth", function()
 	end
 end)
 
-RebirthSection:Box("Rebirth level requirement", function(Value)
+RebirthSection:Box("Rebirth Level Limit", function(Value)
 	Temp.Rebirth_Level = tonumber(Value)
+end)
+
+--// Players Section \\--
+PlayerSection:Toggle("Kill Aura", function()
+	Temp.KillAura = not Temp.KillAura
+
+	while Temp.KillAura do
+		if not Temp.KillAura then break end
+		local Targets = API.GetPlayerTarget(Temp.KillAuraRange)
+		if Targets and #Targets > 0 then
+			game:GetService("ReplicatedStorage").Modules.Net["RE/CombatEvent"]:FireServer("PunchHit", Targets)
+		end
+		task.wait()
+	end
+end)
+
+PlayerSection:Box("Range", function(Value)
+	Temp.KillAuraRange = tonumber(Value)
 end)
 
 Library:Ready()
